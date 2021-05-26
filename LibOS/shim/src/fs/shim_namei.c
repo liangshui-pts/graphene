@@ -74,7 +74,7 @@ static int lookup_dentry(struct shim_dentry* parent, const char* name, size_t na
 
     struct shim_dentry* dent = lookup_dcache(parent, name, name_len);
     if (!dent) {
-        dent = get_new_dentry(parent->fs, parent, name, name_len);
+        dent = get_new_dentry(parent->mount, parent, name, name_len);
         if (!dent) {
             ret = -ENOMEM;
             goto err;
@@ -341,7 +341,7 @@ static inline int open_flags_to_lookup_flags(int flags) {
 }
 
 static void assoc_handle_with_dentry(struct shim_handle* hdl, struct shim_dentry* dent, int flags) {
-    set_handle_fs(hdl, dent->fs);
+    hdl->fs = dent->fs;
     get_dentry(dent);
     hdl->dentry = dent;
     hdl->flags = flags;
@@ -353,7 +353,7 @@ int dentry_open(struct shim_handle* hdl, struct shim_dentry* dent, int flags) {
     assert(!hdl->dentry);
 
     int ret = 0;
-    struct shim_mount* fs = dent->fs;
+    struct shim_fs* fs = dent->fs;
 
     if (!(fs->d_ops && fs->d_ops->open)) {
         ret = -EINVAL;
@@ -369,7 +369,6 @@ int dentry_open(struct shim_handle* hdl, struct shim_dentry* dent, int flags) {
     if (dent->state & DENTRY_ISDIRECTORY) {
         /* Initialize directory handle */
         hdl->is_dir = true;
-        memcpy(hdl->fs_type, fs->type, sizeof(fs->type));
 
         /* Set `dot` and `dotdot` so that we later know to list them */
         get_dentry(dent);
@@ -552,7 +551,7 @@ err:
  */
 int list_directory_dentry(struct shim_dentry* dent) {
     int ret = 0;
-    struct shim_mount* fs = dent->fs;
+    struct shim_fs* fs = dent->fs;
     lock(&g_dcache_lock);
 
     /* DEP 8/4/17: Another process could list this directory

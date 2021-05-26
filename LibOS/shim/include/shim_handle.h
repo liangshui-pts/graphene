@@ -304,7 +304,7 @@ struct shim_epoll_handle {
     LISTP_TYPE(shim_epoll_item) fds;
 };
 
-struct shim_mount;
+struct shim_fs;
 struct shim_qstr;
 struct shim_dentry;
 
@@ -316,8 +316,7 @@ struct shim_handle {
 
     REFTYPE ref_count;
 
-    char fs_type[8];
-    struct shim_mount* fs;
+    struct shim_fs* fs;
     struct shim_dentry* dentry;
 
     /* If this handle is registered for any epoll handle, this list contains
